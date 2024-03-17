@@ -1,0 +1,104 @@
+pip install geopy
+
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import matplotlib.pyplot as plt # for plotting different graphs and having an analysis
+import seaborn as sns 
+import geopy as gp
+
+%%html
+<div>
+    <img src="https://mir-s3-cdn-cf.behance.net/project_modules/1400/bf046050830487.58db8869deaff.gif">
+</div>
+
+dataset= pd.read_csv(r"source")
+
+dataset.dropna()
+
+def scatter_plot(data,title,c):
+    sns.scatterplot(x='Area',y ='Price', data=data, color=c, marker='P')
+    plt.title("Area in sq.ft Vs Price in " + title,size=16)
+    plt.gcf().set_size_inches(6,8)
+    plt.show()
+scatter_plot(dataset,"Banglore","b")
+
+
+features=dataset.columns.tolist()
+print(features)
+
+dataset.rename(columns={'No. of Bedrooms':'Bedrooms', "Children'splayarea":'PlayArea',"Location":"Address"}, inplace=True)
+
+price_outliers = np.percentile(dataset.Price, [5,90])
+area_outliers = np.percentile(dataset.Area, [5,90])
+print(price_outliers,"Is the price percentile outliner and \n",area_outliers,"is the area %ile outliner")
+
+# create filters based on outlier
+price_filter = (dataset.Price > price_outliers[0]) & (dataset.Price < price_outliers[1])
+area_filter = (dataset.Area > area_outliers[0]) & (dataset.Area < area_outliers[1])
+# apply filters
+dataset= dataset[(price_filter) & (area_filter)]
+
+arcgis_geocoder = gp.geocoders.ArcGIS()
+
+def geocode(address:list,
+            geocoder=arcgis_geocoder):
+    
+    '''geocode a list a addresses, returning the address and lat/long'''
+    
+    lat,lon = [],[]
+    
+    for add in address:
+        
+        try :
+            coded = geocoder.geocode(add)
+            
+            lat.append(coded.latitude)
+            lon.append(coded.longitude)
+            
+        except Exception as e:
+            print(e)
+            
+            lat.append(np.nan)
+            lon.append(np.nan)
+            
+            
+    return pd.DataFrame({'Address':address,
+                         'latitude':lat,
+                         'longitude':lon})
+            
+# %%time
+
+geocoded_loc= pd.read_csv(r"C:\Users\HP\Downloads\Bangalore.csv")
+geocoded_loc = geocode(address= dataset.Address.unique())
+#save location info
+geocoded_loc.to_csv('geocoded.csv',index=False)
+
+
+dataset = dataset.merge(geocoded_loc,
+              left_on="Address",
+              right_on ="Address",
+              how='inner')
+
+dataset.shape
+
+dataset.replace(9, np.nan, inplace=True)
+dataset["Price"]=dataset["Price"]/100000
+dataset.dropna()
+
+y=dataset.Price
+features=[
+ 'Area',
+ 'Bedrooms',
+ 'JoggingTrack',
+ 'Cafeteria',
+ 'Resale',
+ '24X7Security',
+ 'LiftAvailable',
+ 'PlayArea',
+ 'latitude',
+ 'longitude']
+X=dataset[features]
