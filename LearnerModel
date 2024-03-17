@@ -1,0 +1,23 @@
+#Our Engines
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import HistGradientBoostingClassifier
+
+X_train, X_test, y_train, y_test = train_test_split(X, y)
+print(X_train)
+print(y_train)
+
+#The compact Engine
+def train_model(m,name):
+    model = m
+    model.fit(X=X_train, y=y_train)
+    predictions = model.predict(X_test)
+    mae = mean_absolute_error(y_test, predictions)
+    print("{0} mae {1} ".format(name,mae))
+
+train_model(DecisionTreeRegressor(max_depth=10),"Decision Tree Regressor")
+#train_model(RandomForestRegressor(),"Random Forest Regressor") 
+
